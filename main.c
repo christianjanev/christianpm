@@ -8,8 +8,9 @@ int length_of_string_array(const char* array[]);
 
 int main()
 {
-	const char* files[5] = {"to_archive/", "to_archive/test.txt", "to_archive/test2.txt", "to_archive/test3.txt", "to_archive/test4.txt"};
+	// const char* files[5] = {"to_archive/", "to_archive/test.txt", "to_archive/test2.txt", "to_archive/test3.txt", "to_archive/test4.txt"};
+	const char* files[1] = {"test.txt"};
 	create_archive(files, "package.cpm", SIZE_OF_ARRAY(files));
-	printf("%d\n", read_archive("hello"));
+	printf("%d\n", read_archive("package.cpm"));
 	return 0;
 }

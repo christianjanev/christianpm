@@ -55,11 +55,24 @@ int read_archive(const char* archive_to_read)
 {
     struct archive* parchive_read = archive_read_new();
 
-    if (parchive_read == NULL) return ARCHIVE_CREATION_ERROR;
+    if (!parchive_read) return ARCHIVE_CREATION_ERROR;
 
 	if (archive_read_support_format_gnutar(parchive_read) == ARCHIVE_FATAL) return ARCHIVE_FORMAT_ERROR;
 
 	if (archive_read_open_filename(parchive_read, archive_to_read, get_file_size(archive_to_read)) == ARCHIVE_FATAL) return ARCHIVE_OPEN_ERROR;
+
+	struct archive_entry *pentry;
+
+	while (archive_read_next_header(parchive_read, &pentry) != ARCHIVE_EOF) {
+		int64_t entry_size = archive_entry_size(pentry);
+		printf("Size: %ld\n", entry_size);
+		unsigned char* buffer = (unsigned char*)malloc(entry_size);
+		archive_read_data(parchive_read, buffer, entry_size);
+		printf("Data: %s\n", buffer);
+		free(buffer);
+	}
+
+	archive_read_close(parchive_read);
 
     return SUCCESS;
 }
