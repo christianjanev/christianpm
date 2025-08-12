@@ -33,6 +33,8 @@ int create_archive(const char* input_filenames[], const char* output_filename, i
 				new_stat->st_size = file_size;
 				archive_entry_copy_stat(new_entry, new_stat);
 
+				archive_entry_set_perm(new_entry, 8o777);
+
 				struct archive* parchive_read = archive_read_disk_new();
 				archive_read_disk_descend(parchive_read);
 
