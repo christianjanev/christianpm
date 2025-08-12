@@ -28,12 +28,9 @@ int create_archive(const char* input_filenames[], const char* output_filename, i
 				if (is_dir) archive_entry_set_filetype(new_entry, AE_IFDIR);
 				else archive_entry_set_filetype(new_entry, AE_IFREG);
 
-				struct stat* new_stat = (struct stat*)archive_entry_stat(new_entry);
-				new_stat->st_mode = S_IFREG;
-				new_stat->st_size = file_size;
-				archive_entry_copy_stat(new_entry, new_stat);
-
-				archive_entry_set_perm(new_entry, 8o777);
+				struct stat new_stat;
+				stat(input_filenames[i], &new_stat);
+				archive_entry_copy_stat(new_entry, &new_stat);
 
 				struct archive* parchive_read = archive_read_disk_new();
 				archive_read_disk_descend(parchive_read);
@@ -42,15 +39,24 @@ int create_archive(const char* input_filenames[], const char* output_filename, i
 
 				if (header_written == ARCHIVE_OK) {
 					archive_write_data(new_archive, text_data, file_size);
-				} else printf("Error writing header. Error: %s\n", archive_error_string(new_archive));
+				} else {
+					printf("Error writing header. Error: %s\n", archive_error_string(new_archive));
+					return ARCHIVE_ENTRY_WRITE_ERROR;
+				}
 
 				free(text_data);
-			} else printf("Error opening file: %s\n", input_filenames[i]);
+			} else {
+				printf("Error opening file: %s\n", input_filenames[i]);
+				return FILE_OPEN_ERROR;
+			}
 		}
 		archive_write_free(new_archive);
-	} else printf("Error creating archive.\n");
+	} else {
+		printf("Error creating archive.\n");
+		return ARCHIVE_CREATION_ERROR;
+	}
 
-	return 0;
+	return ARCHIVE_SUCCESS;
 }
 
 int read_archive(const char* archive_to_read)
@@ -76,5 +82,5 @@ int read_archive(const char* archive_to_read)
 
 	archive_read_close(parchive_read);
 
-    return SUCCESS;
+    return ARCHIVE_SUCCESS;
 }
