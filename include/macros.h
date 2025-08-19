@@ -1,0 +1,1 @@
+#define SIZE_OF_ARRAY(a) sizeof(a)/sizeof(a[0])

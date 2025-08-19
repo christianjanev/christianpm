@@ -1,24 +1,35 @@
 #include "../include/archive.h"
 #include "../include/enums.h"
 #include "../include/file_ops.h"
+#include "../include/macros.h"
+
+int print(char* str)
+{
+	printf("%s\n", str);
+	return 0;
+}
 
 int create_archive(const char* input_filenames[], const char* output_filename, int file_count)
 {
 	struct archive* new_archive = archive_write_new();
-	if (new_archive != NULL) {
+	if (new_archive != NULL)
+	{
 		archive_write_open_filename(new_archive, output_filename);
 
 		archive_write_set_format_gnutar(new_archive);
 		
-		for (int i=0; i<file_count; i++) {
-			struct stat file_stat;
-			stat(input_filenames[i], &file_stat);
-			short is_dir = S_ISDIR(file_stat.st_mode);
+		for (int i=0; i<file_count; i++)
+		{
+			int is_dir = is_path_dir(input_filenames[i]);
 
 			FILE* text = fopen(input_filenames[i], "rb");
 
-			if (text != NULL) {
-				long file_size = get_file_size(input_filenames[i]);
+			if (text != NULL)
+			{
+				struct stat st;
+				stat(input_filenames[i], &st);
+
+				long file_size = st.st_size;
 				unsigned char* text_data = (unsigned char*)malloc(file_size);
 				fread(text_data, 1, file_size, text);
 				fclose(text);
@@ -28,30 +39,37 @@ int create_archive(const char* input_filenames[], const char* output_filename, i
 				if (is_dir) archive_entry_set_filetype(new_entry, AE_IFDIR);
 				else archive_entry_set_filetype(new_entry, AE_IFREG);
 
-				struct stat new_stat;
-				stat(input_filenames[i], &new_stat);
-				archive_entry_copy_stat(new_entry, &new_stat);
+				archive_entry_copy_stat(new_entry, &st);
 
-				struct archive* parchive_read = archive_read_disk_new();
-				archive_read_disk_descend(parchive_read);
+				if (is_dir)
+				{
+					walk_directory(input_filenames[i], print);
+				}
 
 				int header_written = archive_write_header(new_archive, new_entry);
 
-				if (header_written == ARCHIVE_OK) {
+				if (header_written == ARCHIVE_OK)
+				{
 					archive_write_data(new_archive, text_data, file_size);
-				} else {
+				}
+				else
+				{
 					printf("Error writing header. Error: %s\n", archive_error_string(new_archive));
 					return ARCHIVE_ENTRY_WRITE_ERROR;
 				}
 
 				free(text_data);
-			} else {
+			}
+			else
+			{
 				printf("Error opening file: %s\n", input_filenames[i]);
 				return FILE_OPEN_ERROR;
 			}
 		}
 		archive_write_free(new_archive);
-	} else {
+	}
+	else
+	{
 		printf("Error creating archive.\n");
 		return ARCHIVE_CREATION_ERROR;
 	}
@@ -62,12 +80,14 @@ int create_archive(const char* input_filenames[], const char* output_filename, i
 int read_archive(const char* archive_to_read)
 {
     struct archive* parchive_read = archive_read_new();
+	struct stat st;
+	stat(archive_to_read, &st);
 
     if (!parchive_read) return ARCHIVE_CREATION_ERROR;
 
 	if (archive_read_support_format_gnutar(parchive_read) == ARCHIVE_FATAL) return ARCHIVE_FORMAT_ERROR;
 
-	if (archive_read_open_filename(parchive_read, archive_to_read, get_file_size(archive_to_read)) == ARCHIVE_FATAL) return ARCHIVE_OPEN_ERROR;
+	if (archive_read_open_filename(parchive_read, archive_to_read, st.st_size) == ARCHIVE_FATAL) return ARCHIVE_OPEN_ERROR;
 
 	struct archive_entry *pentry;
 
